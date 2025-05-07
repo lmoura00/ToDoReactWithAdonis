@@ -11,7 +11,8 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
-
+import { api } from '../api';
+import Constants from "expo-constants";
 export function CadastroScreen({ navigation }: { navigation: any }) {
     const [formData, setFormData] = useState({
         name: "",
@@ -35,7 +36,7 @@ export function CadastroScreen({ navigation }: { navigation: any }) {
         setLoading(true);
         
         try {
-            const response = await fetch('http://192.168.0.19:3333/user', {
+            const response = await fetch(`${api}user`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -136,10 +137,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#2596be',
+        paddingTop: Constants.statusBarHeight,
     },
     content: {
         flex: 1,
-        justifyContent: 'center',
+        flexDirection: 'column',
         paddingHorizontal: 40,
     },
     logo: {

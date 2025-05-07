@@ -16,6 +16,7 @@ import {
 import axios from "axios";
 import { AuthContext } from "../context/user-context"; 
 import Constants from 'expo-constants';
+import { api } from "../api";
 
 type Task = {
   id: number;
@@ -49,11 +50,12 @@ export function HomeScreen({ navigation }: { navigation: any }) {
     }
 
     try {
-      const response = await axios.get("http://192.168.0.19:3333/task", {
+      const response = await axios.get(`${api}task`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log("Tasks fetched:", response.data);
       setTasks(response.data);
       setError(null);
     } catch (err) {
@@ -77,7 +79,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
 
     try {
       const response = await axios.post(
-        "http://192.168.0.19:3333/task",
+        `${api}task`,
         {
           title: newTask.title,
           description: newTask.description
@@ -100,7 +102,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
 
   const handleDeleteTask = async (taskId: number) => {
     try {
-      await axios.delete(`http://192.168.0.19:3333/task/${taskId}`, {
+      await axios.delete(`${api}task/${taskId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -120,7 +122,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
       if (!taskToUpdate) return;
       
       const response = await axios.patch(
-        `http://192.168.0.19:3333/task/${taskId}`,
+        `${api}task/${taskId}`,
         { done: !taskToUpdate.done },
         {
           headers: {

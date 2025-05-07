@@ -1,0 +1,1 @@
+export const api = "http://10.24.7.67:3333/"

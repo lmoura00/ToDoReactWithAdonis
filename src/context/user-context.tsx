@@ -1,6 +1,7 @@
 import React from "react";
 import { createContext, useState, ReactNode } from "react";
 import axios from "axios";
+import { api } from "../api";
 
 type User = {
   id: number;
@@ -45,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const response = await axios.post("http://192.168.0.19:3333/session", {
+      const response = await axios.post(`${api}session`, {
         email,
         password,
       });
