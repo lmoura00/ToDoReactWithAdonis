@@ -1,54 +1,149 @@
-import React from "react";
-import { View, TextInput, TouchableOpacity, StyleSheet, Text } from "react-native";
+import React, { useEffect, useState } from 'react';
+import { 
+  View, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  ActivityIndicator, 
+  Text,
+  Alert,
+  KeyboardAvoidingView,
+  Platform
+} from 'react-native';
+import { useAuth } from '../hooks/use-user';
+import axios from 'axios';
 
-export function LoginScreen() {
-  return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        secureTextEntry
-      />
-      <TouchableOpacity
-        onPress={() => alert("Login realizado com sucesso!")}
-        style={styles.button}
-      >
-        <Text style={styles.buttonText}>Entrar</Text>
-      </TouchableOpacity>
-    </View>
-  );
+export function LoginScreen({ navigation }: { navigation: any }) {
+    const [email, setEmail] = useState('user1@example.com');
+    const [password, setPassword] = useState('123456');
+    const { login, isLoading, error, token } = useAuth();
+
+    const handleLogin = async () => {
+        try {
+            const result = await login(email, password);
+            console.log('Login result:', result);
+        } catch (error) {
+            console.error('Login error in component:', error);
+            Alert.alert("Erro", "Falha no login. Verifique suas credenciais.");
+        }
+    };
+
+    useEffect(() => {
+        console.log('Token updated in Login component:', token);
+    }, [token]);
+
+    return (
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.container}
+        >
+            <View style={styles.innerContainer}>
+                <Text style={styles.title}>Login</Text>
+                
+                <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Senha"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                />
+                
+                {isLoading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#007BFF" />
+                    </View>
+                ) : (
+                    <>
+                        <TouchableOpacity 
+                            style={styles.loginButton}
+                            onPress={handleLogin}
+                            disabled={isLoading}
+                        >
+                            <Text style={styles.buttonText}>Entrar</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity 
+                            style={styles.registerButton}
+                            onPress={() => navigation.navigate('Cadastro')}
+                            disabled={isLoading}
+                        >
+                            <Text style={styles.registerButtonText}>Criar nova conta</Text>
+                        </TouchableOpacity>
+                    </>
+                )}
+                
+                {error && <Text style={styles.error}>{error}</Text>}
+            </View>
+        </KeyboardAvoidingView>
+    );
 }
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F5FCFF",
-  },
-  input: {
-    height: 40,
-    width: "80%",
-    borderColor: "#CCCCCC",
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 20,
-    backgroundColor: "#FFFFFF",
-  },
-  button: {
-    backgroundColor: "#007BFF",
-    padding: 10,
-    borderRadius: 5,
-    width: "80%",
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#F5FCFF',
+    },
+    innerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        padding: 20,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 30,
+        textAlign: 'center',
+        color: '#333',
+    },
+    input: {
+        height: 50,
+        borderColor: '#CCCCCC',
+        borderWidth: 1,
+        borderRadius: 8,
+        marginBottom: 15,
+        paddingHorizontal: 15,
+        backgroundColor: '#FFFFFF',
+        fontSize: 16,
+    },
+    loginButton: {
+        backgroundColor: '#007BFF',
+        padding: 15,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    registerButton: {
+        padding: 15,
+        borderRadius: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#007BFF',
+    },
+    buttonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    registerButtonText: {
+        color: '#007BFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    error: {
+        color: 'red',
+        marginTop: 15,
+        textAlign: 'center',
+    },
+    loadingContainer: {
+        alignItems: 'center',
+        marginVertical: 20,
+    },
 });
