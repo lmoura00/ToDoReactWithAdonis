@@ -8,7 +8,8 @@ import {
   Text,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { useAuth } from '../hooks/use-user';
 import axios from 'axios';
@@ -38,7 +39,8 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             style={styles.container}
         >
             <View style={styles.innerContainer}>
-                <Text style={styles.title}>Login</Text>
+                <Image source={require("../../assets/logo.png")} style={styles.logo}/>
+                <Text style={styles.title}>ANY-DO</Text>
                 
                 <TextInput
                     style={styles.input}
@@ -58,7 +60,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
                 
                 {isLoading ? (
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#007BFF" />
+                        <ActivityIndicator size="large" color="#fff" />
                     </View>
                 ) : (
                     <>
@@ -89,7 +91,13 @@ export function LoginScreen({ navigation }: { navigation: any }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5FCFF',
+        backgroundColor: '#2596be',
+    },
+    logo:{
+        width: 100,
+        height: 100,
+        alignSelf: 'center',
+        marginBottom: 20,
     },
     innerContainer: {
         flex: 1,
@@ -97,11 +105,11 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     title: {
-        fontSize: 24,
+        fontSize: 35,
         fontWeight: 'bold',
-        marginBottom: 30,
+        marginBottom: 90,
         textAlign: 'center',
-        color: '#333',
+        color: '#fff',
     },
     input: {
         height: 50,
@@ -114,7 +122,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     loginButton: {
-        backgroundColor: '#007BFF',
+        backgroundColor: '#fff',
         padding: 15,
         borderRadius: 8,
         alignItems: 'center',
@@ -125,15 +133,15 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#007BFF',
+        borderColor: '#fff',
     },
     buttonText: {
-        color: '#FFFFFF',
+        color: '#2596be',
         fontSize: 16,
         fontWeight: 'bold',
     },
     registerButtonText: {
-        color: '#007BFF',
+        color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
     },

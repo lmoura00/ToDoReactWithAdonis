@@ -11,7 +11,8 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image
 } from "react-native";
 import axios from "axios";
 import { AuthContext } from "../context/user-context"; 
@@ -135,7 +136,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
         task.id === taskId ? response.data : task
       ));
     } catch (err) {
-      console.error("Error updating task:", err);
+      console.error("Erro ao atualizar:", err);
       Alert.alert("Erro", "Não foi possível atualizar a tarefa");
     }
   };
@@ -163,9 +164,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
           <Text style={styles.taskStatus}>
             {item.done ? "✅ Completa" : "🟡 Pendente"}
           </Text>
-          <Text style={styles.taskDate}>
-            {new Date(item.createdAt).toLocaleDateString()}
-          </Text>
+
         </View>
       </View>
       
@@ -192,7 +191,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007BFF" />
+        <ActivityIndicator size="large" color="#" />
       </View>
     );
   }
@@ -211,10 +210,14 @@ export function HomeScreen({ navigation }: { navigation: any }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Bem vindo(a), {user?.name}</Text>
-        <TouchableOpacity onPress={logout}>
+        <Image source={require("../../assets/logo.png")} style={styles.logo}/>
+        <TouchableOpacity onPress={logout} style={{ position: 'absolute', right: 30, top: 90 }}>
           <Text style={styles.logoutText}>Sair</Text>
         </TouchableOpacity>
+      </View>
+
+       <View style={styles.header1}>
+        <Text style={styles.title}>Bem vindo(a), {user?.name}</Text>
       </View>
 
       <FlatList
@@ -226,7 +229,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#007BFF"]}
+            colors={["#2596be"]}
           />
         }
         ListEmptyComponent={
@@ -260,6 +263,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
               style={styles.input}
               placeholder="Titulo da Tarefa"
               value={newTask.title}
+              placeholderTextColor={"#2596be"}
               onChangeText={(text) => setNewTask({...newTask, title: text})}
             />
             
@@ -267,6 +271,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
               style={[styles.input, styles.descriptionInput]}
               placeholder="Descricao da Tarefa (opcional)"
               multiline
+              placeholderTextColor={"#2596be"}
               numberOfLines={4}
               value={newTask.description}
               onChangeText={(text) => setNewTask({...newTask, description: text})}
@@ -301,8 +306,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: Constants.statusBarHeight,
-    backgroundColor: "#F5FCFF",
-    padding: 16,
+    backgroundColor: "#2596be",
+    
   },
   centerContainer: {
     flex: 1,
@@ -312,20 +317,51 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    backgroundColor: "#fff",
+    width: "100%",
+    height: 150,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+    marginTop: -60
+  },
+  logo: {
+    width: 50,
+    height: 50,
+    marginBottom: -40,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: "#2596be",
+    padding: 5,
+    backgroundColor:"#2596be"
+  },
+    header1: {
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
+    paddingHorizontal: 20,
   },
   title: {
     fontSize: 20,
     fontWeight: "bold",
+    color: "#fff",
   },
   logoutText: {
     color: "#FF3B30",
     fontWeight: "600",
+    fontSize: 18,
   },
   listContainer: {
     paddingBottom: 20,
+    paddingHorizontal: 10,
   },
   taskItem: {
     backgroundColor: "#FFFFFF",
@@ -343,7 +379,7 @@ const styles = StyleSheet.create({
   taskItemCompleted: {
     opacity: 0.7,
     borderLeftWidth: 4,
-    borderLeftColor: "#4CAF50",
+    borderLeftColor: "rgb(43, 188, 240)",
   },
   taskContent: {
     flex: 1,
@@ -365,7 +401,7 @@ const styles = StyleSheet.create({
   },
   taskStatus: {
     fontSize: 14,
-    color: "#007BFF",
+    color: "#2596be",
   },
   taskDate: {
     fontSize: 12,
@@ -395,7 +431,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   button: {
-    backgroundColor: "#007BFF",
+    backgroundColor: "#2596be",
     padding: 12,
     borderRadius: 5,
     alignItems: "center",
@@ -419,7 +455,7 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   addButton: {
-    backgroundColor: "#007BFF",
+    backgroundColor: "#fff",
     padding: 15,
     borderRadius: 50,
     alignItems: "center",
@@ -435,7 +471,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   addButtonText: {
-    color: "#FFFFFF",
+    color: "#2596be",
     fontSize: 30,
     fontWeight: "bold",
   },
@@ -463,16 +499,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#2596be',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#2596be',
     borderRadius: 5,
     padding: 10,
     marginBottom: 15,
+  
   },
   descriptionInput: {
     height: 100,
+    color:"#2596be",
     textAlignVertical: 'top',
   },
   modalButtons: {
@@ -489,7 +528,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
   },
   addButtonModal: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#2596be',
   },
   modalButtonText: {
     color: 'white',
