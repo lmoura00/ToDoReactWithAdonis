@@ -56,7 +56,6 @@ export function HomeScreen({ navigation }: { navigation: any }) {
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log("Tasks fetched:", response.data);
       setTasks(response.data);
       setError(null);
     } catch (err) {
@@ -77,27 +76,32 @@ export function HomeScreen({ navigation }: { navigation: any }) {
       Alert.alert("Error", "Task title is required");
       return;
     }
-
+  
     try {
+      const taskData = {
+        title: newTask.title.trim(),
+        description: newTask.description ? newTask.description.trim() : null 
+      };
+  
       const response = await axios.post(
         `${api}task`,
-        {
-          title: newTask.title,
-          description: newTask.description
-        },
+        taskData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-
+  
       setTasks([...tasks, response.data]);
       setModalVisible(false);
       setNewTask({ title: '', description: '' });
     } catch (err) {
       console.error("Error adding task:", err);
       Alert.alert("Error", "Failed to add task");
+      if (axios.isAxiosError(err)) {
+        console.error("Server response:", err.response?.data);
+      }
     }
   };
 
@@ -110,7 +114,6 @@ export function HomeScreen({ navigation }: { navigation: any }) {
       });
       
       setTasks(tasks.filter(task => task.id !== taskId));
-      Alert.alert("Sucesso", "Tarefa removida com sucesso");
     } catch (err) {
       console.error("Error deleting task:", err);
       Alert.alert("Erro", "Não foi possível remover a tarefa");
@@ -119,12 +122,15 @@ export function HomeScreen({ navigation }: { navigation: any }) {
 
   const handleToggleTaskStatus = async (taskId: number) => {
     try {
-      const taskToUpdate = tasks.find(task => task.id === taskId);
-      if (!taskToUpdate) return;
-      
-      const response = await axios.patch(
+    
+      setTasks(tasks.map(task => 
+        task.id === taskId ? {...task, done: !task.done} : task
+      ));
+
+      // Chamada à API
+      await axios.patch(
         `${api}task/${taskId}`,
-        { done: !taskToUpdate.done },
+        { done: !tasks.find(task => task.id === taskId)?.done },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -132,11 +138,12 @@ export function HomeScreen({ navigation }: { navigation: any }) {
         }
       );
       
-      setTasks(tasks.map(task => 
-        task.id === taskId ? response.data : task
-      ));
+
+      fetchTasks();
     } catch (err) {
       console.error("Erro ao atualizar:", err);
+    
+      setTasks(tasks);
       Alert.alert("Erro", "Não foi possível atualizar a tarefa");
     }
   };
@@ -164,7 +171,6 @@ export function HomeScreen({ navigation }: { navigation: any }) {
           <Text style={styles.taskStatus}>
             {item.done ? "✅ Completa" : "🟡 Pendente"}
           </Text>
-
         </View>
       </View>
       
@@ -191,7 +197,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#" />
+        <ActivityIndicator size="large" color="#2596be" />
       </View>
     );
   }
@@ -216,7 +222,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
         </TouchableOpacity>
       </View>
 
-       <View style={styles.header1}>
+      <View style={styles.header1}>
         <Text style={styles.title}>Bem vindo(a), {user?.name}</Text>
       </View>
 
@@ -307,7 +313,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: Constants.statusBarHeight,
     backgroundColor: "#2596be",
-    
   },
   centerContainer: {
     flex: 1,
@@ -342,7 +347,7 @@ const styles = StyleSheet.create({
     padding: 5,
     backgroundColor:"#2596be"
   },
-    header1: {
+  header1: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -360,7 +365,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   listContainer: {
-    paddingBottom: 20,
+    paddingBottom: 150,
     paddingHorizontal: 10,
   },
   taskItem: {
@@ -402,10 +407,6 @@ const styles = StyleSheet.create({
   taskStatus: {
     fontSize: 14,
     color: "#2596be",
-  },
-  taskDate: {
-    fontSize: 12,
-    color: "#999",
   },
   taskActions: {
     flexDirection: 'column',
@@ -507,7 +508,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 15,
-  
   },
   descriptionInput: {
     height: 100,
