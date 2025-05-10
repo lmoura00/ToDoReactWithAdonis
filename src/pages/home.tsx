@@ -122,6 +122,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
       setTasks([...tasks, response.data]);
       setModalVisible(false);
       setNewTask({ title: "", description: "" });
+      fetchTasks();
     } catch (err) {
       console.error("Erro adicionando tarefa:", err);
       Alert.alert("Erro", "Falha ao adicionar tarefa");
