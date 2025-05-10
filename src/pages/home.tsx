@@ -1,23 +1,23 @@
-import React, { useEffect, useState, useContext } from "react";
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  FlatList, 
+import React, { useEffect, useState, useContext, useCallback } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
   ActivityIndicator,
   Alert,
   RefreshControl,
-  Modal,
+  Image,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  Image
 } from "react-native";
 import axios from "axios";
-import { AuthContext } from "../context/user-context"; 
-import Constants from 'expo-constants';
+import { AuthContext } from "../context/user-context";
+import Constants from "expo-constants";
 import { api } from "../api";
+import { TaskItem } from "../componentes/TaskItem";
+import { AddTaskModal } from "../componentes/AddTaskModal";
+import LottieView from "lottie-react-native";
 
 type Task = {
   id: number;
@@ -29,21 +29,26 @@ type Task = {
   updatedAt: string;
 };
 
+type FilterType = "all" | "completed" | "pending";
+
 export function HomeScreen({ navigation }: { navigation: any }) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [filter, setFilter] = useState<FilterType>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [newTask, setNewTask] = useState({
-    title: '',
-    description: ''
+    title: "",
+    description: "",
   });
-  
+
   const authContext = useContext(AuthContext);
   const { user, token, logout } = authContext;
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     if (!token) {
       setError("Authentication required");
       setLoading(false);
@@ -59,46 +64,67 @@ export function HomeScreen({ navigation }: { navigation: any }) {
       setTasks(response.data);
       setError(null);
     } catch (err) {
-      setError("Failed to fetch tasks");
+      setError("Falha ao carregar tarefas");
       console.error("Error fetching tasks:", err);
       if (axios.isAxiosError(err) && err.response?.status === 401) {
-        Alert.alert("Session Expired", "Please login again");
+        Alert.alert("Sessão expirada", "Por favor, faça login novamente");
         logout();
       }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [token, logout]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  useEffect(() => {
+    let result = tasks;
+
+    if (filter === "completed") {
+      result = result.filter((task) => task.done);
+    } else if (filter === "pending") {
+      result = result.filter((task) => !task.done);
+    }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (task) =>
+          task.title.toLowerCase().includes(query) ||
+          task.description.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredTasks(result);
+  }, [tasks, filter, searchQuery]);
 
   const handleAddTask = async () => {
     if (!newTask.title.trim()) {
-      Alert.alert("Error", "Task title is required");
+      Alert.alert("Erro", "Título não pode estar em branco!");
       return;
     }
-  
+
     try {
       const taskData = {
         title: newTask.title.trim(),
-        description: newTask.description ? newTask.description.trim() : null 
+        description: newTask.description.trim() || "",
       };
-  
-      const response = await axios.post(
-        `${api}task`,
-        taskData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-  
+
+      const response = await axios.post(`${api}task`, taskData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       setTasks([...tasks, response.data]);
       setModalVisible(false);
-      setNewTask({ title: '', description: '' });
+      setNewTask({ title: "", description: "" });
     } catch (err) {
-      console.error("Error adding task:", err);
-      Alert.alert("Error", "Failed to add task");
+      console.error("Erro adicionando tarefa:", err);
+      Alert.alert("Erro", "Falha ao adicionar tarefa");
       if (axios.isAxiosError(err)) {
         console.error("Server response:", err.response?.data);
       }
@@ -112,45 +138,36 @@ export function HomeScreen({ navigation }: { navigation: any }) {
           Authorization: `Bearer ${token}`,
         },
       });
-      
-      setTasks(tasks.filter(task => task.id !== taskId));
+
+      setTasks(tasks.filter((task) => task.id !== taskId));
     } catch (err) {
-      console.error("Error deleting task:", err);
+      console.error("Erro ao remover:", err);
       Alert.alert("Erro", "Não foi possível remover a tarefa");
     }
   };
 
   const handleToggleTaskStatus = async (taskId: number) => {
     try {
-    
-      setTasks(tasks.map(task => 
-        task.id === taskId ? {...task, done: !task.done} : task
-      ));
+      const updatedTasks = tasks.map((task) =>
+        task.id === taskId ? { ...task, done: !task.done } : task
+      );
+      setTasks(updatedTasks);
 
-      // Chamada à API
       await axios.patch(
         `${api}task/${taskId}`,
-        { done: !tasks.find(task => task.id === taskId)?.done },
+        { done: !tasks.find((task) => task.id === taskId)?.done },
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      
-
-      fetchTasks();
     } catch (err) {
       console.error("Erro ao atualizar:", err);
-    
       setTasks(tasks);
       Alert.alert("Erro", "Não foi possível atualizar a tarefa");
     }
   };
-
-  useEffect(() => {
-    fetchTasks();
-  }, [token]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -158,46 +175,40 @@ export function HomeScreen({ navigation }: { navigation: any }) {
   };
 
   const renderItem = ({ item }: { item: Task }) => (
-    <View style={[
-      styles.taskItem, 
-      item.done && styles.taskItemCompleted
-    ]}>
-      <View style={styles.taskContent}>
-        <Text style={styles.taskTitle}>{item.title}</Text>
-        <Text style={styles.taskDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
-        <View style={styles.taskStatusContainer}>
-          <Text style={styles.taskStatus}>
-            {item.done ? "✅ Completa" : "🟡 Pendente"}
-          </Text>
-        </View>
-      </View>
-      
-      <View style={styles.taskActions}>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.completeButton]}
-          onPress={() => handleToggleTaskStatus(item.id)}
-        >
-          <Text style={styles.actionButtonText}>
-            {item.done ? "Desfazer" : "Concluir"}
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => handleDeleteTask(item.id)}
-        >
-          <Text style={styles.actionButtonText}>Apagar</Text>
-        </TouchableOpacity>
-      </View>
+    <TaskItem
+      item={item}
+      onToggleStatus={handleToggleTaskStatus}
+      onDelete={handleDeleteTask}
+    />
+  );
+
+  const renderEmptyComponent = () => (
+    <View style={styles.emptyContainer}>
+      <LottieView
+        autoPlay
+        style={{
+          width: 400,
+          height: 400,
+        }}
+        source={require("../../assets/empty.json")}
+      />
+      <Text style={styles.emptyText}>Nenhuma tarefa encontrada</Text>
+      <Text style={styles.emptySubText}>
+        {filter !== "all" || searchQuery
+          ? "Tente ajustar seus filtros de busca"
+          : 'Toque no botão "+" para adicionar uma nova tarefa'}
+      </Text>
     </View>
   );
 
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2596be" />
+        <ActivityIndicator
+          testID="loading-indicator"
+          size="large"
+          color="#2596be"
+        />
       </View>
     );
   }
@@ -216,8 +227,11 @@ export function HomeScreen({ navigation }: { navigation: any }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Image source={require("../../assets/logo.png")} style={styles.logo}/>
-        <TouchableOpacity onPress={logout} style={{ position: 'absolute', right: 30, top: 90 }}>
+        <Image source={require("../../assets/logo.png")} style={styles.logo} />
+        <TouchableOpacity
+          onPress={logout}
+          style={{ position: "absolute", right: 30, top: 90 }}
+        >
           <Text style={styles.logoutText}>Sair</Text>
         </TouchableOpacity>
       </View>
@@ -226,10 +240,75 @@ export function HomeScreen({ navigation }: { navigation: any }) {
         <Text style={styles.title}>Bem vindo(a), {user?.name}</Text>
       </View>
 
+      <View style={styles.filterContainer}>
+        <View style={styles.filterButtons}>
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              filter === "all" && styles.activeFilter,
+            ]}
+            onPress={() => setFilter("all")}
+          >
+            <Text
+              style={[
+                styles.filterButtonText,
+                filter === "all" && styles.activeFilterText,
+              ]}
+            >
+              Todas
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              filter === "pending" && styles.activeFilter,
+            ]}
+            onPress={() => setFilter("pending")}
+          >
+            <Text
+              style={[
+                styles.filterButtonText,
+                filter === "pending" && styles.activeFilterText,
+              ]}
+            >
+              Pendentes
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              filter === "completed" && styles.activeFilter,
+            ]}
+            onPress={() => setFilter("completed")}
+          >
+            <Text
+              style={[
+                styles.filterButtonText,
+                filter === "completed" && styles.activeFilterText,
+              ]}
+            >
+              Concluídas
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar tarefas..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor="#888"
+        />
+      </View>
+
       <FlatList
-        data={tasks}
+        data={filteredTasks}
         renderItem={renderItem}
-        keyExtractor={(item, index) => (item.id ? item.id.toString() : index.toString())}
+        keyExtractor={(item) =>
+          item?.id?.toString() || Math.random().toString()
+        }
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl
@@ -238,72 +317,29 @@ export function HomeScreen({ navigation }: { navigation: any }) {
             colors={["#2596be"]}
           />
         }
-        ListEmptyComponent={
-          <Text style={styles.noTasksText}>Sem tarefas! Cadastre novas</Text>
-        }
+        ListEmptyComponent={renderEmptyComponent}
       />
 
-      <TouchableOpacity 
+      <TouchableOpacity
+        testID="add-task-button"
         style={styles.addButton}
         onPress={() => setModalVisible(true)}
       >
         <Text style={styles.addButtonText}>+</Text>
       </TouchableOpacity>
 
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <AddTaskModal
         visible={modalVisible}
-        onRequestClose={() => {
+        onClose={() => {
           setModalVisible(false);
+          setNewTask({ title: "", description: "" });
         }}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.modalContainer}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>ADICIONAR NOVA TAREFA</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Titulo da Tarefa"
-              value={newTask.title}
-              placeholderTextColor={"#2596be"}
-              onChangeText={(text) => setNewTask({...newTask, title: text})}
-            />
-            
-            <TextInput
-              style={[styles.input, styles.descriptionInput]}
-              placeholder="Descricao da Tarefa (opcional)"
-              multiline
-              placeholderTextColor={"#2596be"}
-              numberOfLines={4}
-              value={newTask.description}
-              onChangeText={(text) => setNewTask({...newTask, description: text})}
-            />
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setModalVisible(false);
-                  setNewTask({ title: '', description: '' });
-                }}
-              >
-                <Text style={styles.modalButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.addButtonModal]}
-                onPress={handleAddTask}
-              >
-                <Text style={styles.modalButtonText}>Adicionar Tarefa</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        onSubmit={handleAddTask}
+        task={newTask}
+        onTaskChange={(field, value) =>
+          setNewTask({ ...newTask, [field]: value })
+        }
+      />
     </View>
   );
 }
@@ -335,7 +371,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
-    marginTop: -60
+    marginTop: -60,
   },
   logo: {
     width: 50,
@@ -345,7 +381,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#2596be",
     padding: 5,
-    backgroundColor:"#2596be"
+    backgroundColor: "#2596be",
   },
   header1: {
     flexDirection: "row",
@@ -364,72 +400,65 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 18,
   },
+  filterContainer: {
+    paddingHorizontal: 15,
+    marginBottom: 15,
+  },
+  filterButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  filterButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#f0f0f0",
+    alignItems: "center",
+  },
+  activeFilter: {
+    backgroundColor: "#fff",
+  },
+  filterButtonText: {
+    color: "#555",
+    fontWeight: "600",
+  },
+  activeFilterText: {
+    color: "#2596be",
+  },
+  searchInput: {
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 20,
+    marginBottom: 10,
+    color: "#333",
+  },
   listContainer: {
     paddingBottom: 150,
     paddingHorizontal: 10,
   },
-  taskItem: {
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  taskItemCompleted: {
-    opacity: 0.7,
-    borderLeftWidth: 4,
-    borderLeftColor: "rgb(43, 188, 240)",
-  },
-  taskContent: {
+  emptyContainer: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
-  taskTitle: {
+  emptyImage: {
+    width: 150,
+    height: 150,
+    marginBottom: 20,
+  },
+  emptyText: {
     fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
-    color: "#333",
-  },
-  taskDescription: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-  },
-  taskStatusContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  taskStatus: {
-    fontSize: 14,
-    color: "#2596be",
-  },
-  taskActions: {
-    flexDirection: 'column',
-    justifyContent: 'center',
-    marginLeft: 10,
-  },
-  actionButton: {
-    padding: 8,
-    borderRadius: 5,
+    color: "#555",
+    textAlign: "center",
     marginBottom: 5,
-    alignItems: 'center',
-    minWidth: 80,
   },
-  completeButton: {
-    backgroundColor: '#4CAF50',
-  },
-  deleteButton: {
-    backgroundColor: '#FF3B30',
-  },
-  actionButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+  emptySubText: {
+    fontSize: 14,
+    color: "#555",
+    textAlign: "center",
   },
   button: {
     backgroundColor: "#2596be",
@@ -449,19 +478,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 16,
   },
-  noTasksText: {
-    textAlign: "center",
-    fontSize: 16,
-    color: "#666",
-    marginVertical: 20,
-  },
   addButton: {
     backgroundColor: "#fff",
     padding: 15,
     borderRadius: 50,
     alignItems: "center",
     justifyContent: "center",
-    position: 'absolute',
+    position: "absolute",
     bottom: 80,
     right: 20,
     width: 69,
@@ -475,63 +498,5 @@ const styles = StyleSheet.create({
     color: "#2596be",
     fontSize: 30,
     fontWeight: "bold",
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    margin: 20,
-    borderRadius: 10,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#2596be',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#2596be',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
-  },
-  descriptionInput: {
-    height: 100,
-    color:"#2596be",
-    textAlignVertical: 'top',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  modalButton: {
-    padding: 10,
-    borderRadius: 5,
-    width: '48%',
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#ccc',
-  },
-  addButtonModal: {
-    backgroundColor: '#2596be',
-  },
-  modalButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
   },
 });
