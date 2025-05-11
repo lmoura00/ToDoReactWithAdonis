@@ -11,8 +11,11 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from "../api";
 import Constants from "expo-constants";
+
 export function CadastroScreen({ navigation }: { navigation: any }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -22,7 +25,6 @@ export function CadastroScreen({ navigation }: { navigation: any }) {
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    // Basic validation
     if (!formData.name || !formData.email || !formData.password) {
       Alert.alert("Erro", "Por favor, preencha todos os campos");
       return;
@@ -67,72 +69,83 @@ export function CadastroScreen({ navigation }: { navigation: any }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+      style={{ flex: 1 }}
     >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Image
-            source={require("../../assets/logo.png")}
-            style={styles.logo}
-          />
+      <LinearGradient
+        colors={['#2596be', '#1c7d9a']}
+        style={styles.container}
+      >
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Image
+              source={require("../../assets/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+
+          <Text style={styles.title}>CRIAR CONTA</Text>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color="#fff" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Nome completo"
+              placeholderTextColor="rgba(255, 255, 255, 0.7)"
+              value={formData.name}
+              onChangeText={(text) => setFormData({ ...formData, name: text })}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={20} color="#fff" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="rgba(255, 255, 255, 0.7)"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={formData.email}
+              onChangeText={(text) => setFormData({ ...formData, email: text })}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#fff" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Senha (mínimo 6 caracteres)"
+              placeholderTextColor="rgba(255, 255, 255, 0.7)"
+              secureTextEntry
+              value={formData.password}
+              onChangeText={(text) =>
+                setFormData({ ...formData, password: text })
+              }
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.registerButton}
+            onPress={handleRegister}
+            disabled={loading}
+            activeOpacity={0.7}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.registerButtonText}>CRIAR CONTA</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.loginLink}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.loginLinkText}>Já tem uma conta? <Text style={{ fontWeight: 'bold' }}>Faça login</Text></Text>
+          </TouchableOpacity>
         </View>
-
-        <Text style={styles.title}>CADASTRO</Text>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Nome:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Digite seu nome"
-            value={formData.name}
-            onChangeText={(text) => setFormData({ ...formData, name: text })}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Email:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Digite seu email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={formData.email}
-            onChangeText={(text) => setFormData({ ...formData, email: text })}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Senha:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Digite sua senha"
-            secureTextEntry
-            value={formData.password}
-            onChangeText={(text) =>
-              setFormData({ ...formData, password: text })
-            }
-          />
-        </View>
-
-        <TouchableOpacity
-          style={styles.registerButton}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#2596be" />
-          ) : (
-            <Text style={styles.registerButtonText}>CADASTRAR</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.loginLink}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.loginLinkText}>Já tem uma conta? Faça login</Text>
-        </TouchableOpacity>
-      </View>
+      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
@@ -140,86 +153,77 @@ export function CadastroScreen({ navigation }: { navigation: any }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#2596be",
     paddingTop: Constants.statusBarHeight,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-    backgroundColor: "#fff",
-    width: "100%",
-    height: 150,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    marginTop: -60,
+    alignItems: 'center',
+    marginBottom: 30,
   },
   content: {
     flex: 1,
-    flexDirection: "column",
+    justifyContent: 'center',
+    paddingHorizontal: 30,
   },
   logo: {
-    width: 50,
-    height: 50,
-    marginBottom: -40,
-    borderRadius: 50,
-    borderWidth: 2,
-    borderColor: "#2596be",
-    padding: 5,
-    backgroundColor: "#2596be",
+    width: 120,
+    height: 120,
+    marginBottom: 10,
+    tintColor: '#fff',
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#fff",
-    textAlign: "center",
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
     marginBottom: 40,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   inputContainer: {
+    position: 'relative',
     marginBottom: 20,
-    paddingHorizontal: 15,
   },
-  inputLabel: {
-    fontSize: 16,
-    color: "#fff",
-    marginBottom: 8,
+  inputIcon: {
+    position: 'absolute',
+    left: 20,
+    top: 18,
+    zIndex: 1,
   },
   input: {
-    height: 50,
-    borderColor: "#2596be",
+    height: 56,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     fontSize: 16,
+    color: '#fff',
+    paddingLeft: 50,
   },
   registerButton: {
-    width: "80%",
-    alignSelf: "center",
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
+    backgroundColor: '#fff',
+    padding: 18,
+    borderRadius: 12,
+    alignItems: 'center',
     marginTop: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 3,
   },
   registerButtonText: {
-    color: "#2596be",
+    color: '#2596be',
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   loginLink: {
-    marginTop: 20,
-    alignItems: "center",
+    marginTop: 25,
+    alignItems: 'center',
   },
   loginLinkText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 16,
-    textDecorationLine: "underline",
   },
 });
