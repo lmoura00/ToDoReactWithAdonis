@@ -21,8 +21,8 @@ export function LoginScreen({ navigation }: { navigation: any }) {
 
     const handleLogin = async () => {
         try {
-            const result = await login(email, password);
-            console.log('Login result:', result);
+            await login(email, password);
+
         } catch (error) {
             console.error('Login error in component:', error);
             Alert.alert("Erro", "Falha no login. Verifique suas credenciais.");
@@ -107,6 +107,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 35,
         fontWeight: 'bold',
+        fontStyle: 'italic',
         marginBottom: 90,
         textAlign: 'center',
         color: '#fff',

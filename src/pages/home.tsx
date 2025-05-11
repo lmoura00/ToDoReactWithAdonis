@@ -10,7 +10,10 @@ import {
   RefreshControl,
   Image,
   TextInput,
+  Modal,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import axios from "axios";
 import { AuthContext } from "../context/user-context";
 import Constants from "expo-constants";
@@ -31,6 +34,15 @@ type Task = {
 
 type FilterType = "all" | "completed" | "pending";
 
+const colors = {
+  primary: "#2596be",
+  secondary: "#1c7d9a",
+  accent: "#FF3B30",
+  background: "#f8f9fa",
+  text: "#333",
+  lightText: "#777",
+};
+
 export function HomeScreen({ navigation }: { navigation: any }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
@@ -38,6 +50,8 @@ export function HomeScreen({ navigation }: { navigation: any }) {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [newTask, setNewTask] = useState({
@@ -141,10 +155,19 @@ export function HomeScreen({ navigation }: { navigation: any }) {
       });
 
       setTasks(tasks.filter((task) => task.id !== taskId));
+      setDeleteModalVisible(false);
+      setTaskToDelete(null);
     } catch (err) {
       console.error("Erro ao remover:", err);
       Alert.alert("Erro", "Não foi possível remover a tarefa");
+      setDeleteModalVisible(false);
+      setTaskToDelete(null);
     }
+  };
+
+  const confirmDelete = (taskId: number) => {
+    setTaskToDelete(taskId);
+    setDeleteModalVisible(true);
   };
 
   const handleToggleTaskStatus = async (taskId: number) => {
@@ -179,7 +202,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
     <TaskItem
       item={item}
       onToggleStatus={handleToggleTaskStatus}
-      onDelete={handleDeleteTask}
+      onDelete={confirmDelete}
     />
   );
 
@@ -204,12 +227,14 @@ export function HomeScreen({ navigation }: { navigation: any }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator
-          testID="loading-indicator"
-          size="large"
-          color="#2596be"
-        />
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        {[...Array(5)].map((_, i) => (
+          <View key={i} style={styles.skeletonItem}>
+            <View style={styles.skeletonLine} />
+            <View style={[styles.skeletonLine, { width: "70%" }]} />
+          </View>
+        ))}
       </View>
     );
   }
@@ -217,8 +242,13 @@ export function HomeScreen({ navigation }: { navigation: any }) {
   if (error) {
     return (
       <View style={styles.centerContainer}>
+        <StatusBar style="light" />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.button} onPress={fetchTasks}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={fetchTasks}
+          activeOpacity={0.7}
+        >
           <Text style={styles.buttonText}>Tentar novamente</Text>
         </TouchableOpacity>
       </View>
@@ -227,12 +257,17 @@ export function HomeScreen({ navigation }: { navigation: any }) {
 
   return (
     <View style={styles.container}>
+      <StatusBar style="dark" />
+      
       <View style={styles.header}>
         <Image source={require("../../assets/logo.png")} style={styles.logo} />
+        <Text style={styles.logoText}>ANY DO</Text>
         <TouchableOpacity
           onPress={logout}
-          style={{ position: "absolute", right: 30, top: 90 }}
+          style={styles.logoutButton}
+          activeOpacity={0.7}
         >
+          <Ionicons name="exit-outline" size={24} color={colors.accent} />
           <Text style={styles.logoutText}>Sair</Text>
         </TouchableOpacity>
       </View>
@@ -249,7 +284,13 @@ export function HomeScreen({ navigation }: { navigation: any }) {
               filter === "all" && styles.activeFilter,
             ]}
             onPress={() => setFilter("all")}
+            activeOpacity={0.7}
           >
+            <MaterialIcons
+              name="done-all"
+              size={18}
+              color={filter === "all" ? colors.primary : colors.lightText}
+            />
             <Text
               style={[
                 styles.filterButtonText,
@@ -266,7 +307,13 @@ export function HomeScreen({ navigation }: { navigation: any }) {
               filter === "pending" && styles.activeFilter,
             ]}
             onPress={() => setFilter("pending")}
+            activeOpacity={0.7}
           >
+            <MaterialIcons
+              name="pending-actions"
+              size={18}
+              color={filter === "pending" ? colors.primary : colors.lightText}
+            />
             <Text
               style={[
                 styles.filterButtonText,
@@ -283,7 +330,13 @@ export function HomeScreen({ navigation }: { navigation: any }) {
               filter === "completed" && styles.activeFilter,
             ]}
             onPress={() => setFilter("completed")}
+            activeOpacity={0.7}
           >
+            <MaterialIcons
+              name="check-circle"
+              size={18}
+              color={filter === "completed" ? colors.primary : colors.lightText}
+            />
             <Text
               style={[
                 styles.filterButtonText,
@@ -295,13 +348,21 @@ export function HomeScreen({ navigation }: { navigation: any }) {
           </TouchableOpacity>
         </View>
 
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar tarefas..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#888"
-        />
+        <View style={styles.searchContainer}>
+          <Ionicons
+            name="search"
+            size={20}
+            color={colors.lightText}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar tarefas..."
+            placeholderTextColor={colors.lightText}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </View>
 
       <FlatList
@@ -315,16 +376,18 @@ export function HomeScreen({ navigation }: { navigation: any }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#2596be"]}
+            colors={[colors.primary]}
           />
         }
         ListEmptyComponent={renderEmptyComponent}
       />
 
+ 
       <TouchableOpacity
         testID="add-task-button"
         style={styles.addButton}
         onPress={() => setModalVisible(true)}
+        activeOpacity={0.7}
       >
         <Text style={styles.addButtonText}>+</Text>
       </TouchableOpacity>
@@ -341,6 +404,45 @@ export function HomeScreen({ navigation }: { navigation: any }) {
           setNewTask({ ...newTask, [field]: value })
         }
       />
+
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={deleteModalVisible}
+        onRequestClose={() => {
+          setDeleteModalVisible(false);
+          setTaskToDelete(null);
+        }}
+      >
+        <View style={styles.centeredModalView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalTitle}>Confirmar exclusão</Text>
+            <Text style={styles.modalText}>
+              Tem certeza que deseja excluir esta tarefa?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setDeleteModalVisible(false);
+                  setTaskToDelete(null);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={() => taskToDelete && handleDeleteTask(taskToDelete)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.confirmButtonText}>Excluir</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -356,33 +458,43 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    backgroundColor: "#2596be",
   },
   header: {
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    marginTop: -50,
+    paddingTop: 50,
     backgroundColor: "#fff",
-    width: "100%",
-    height: 150,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    marginTop: -60,
+    shadowRadius: 8,
+    elevation: 10,
+    height: 150,
   },
   logo: {
     width: 50,
     height: 50,
-    marginBottom: -40,
-    borderRadius: 50,
+    borderRadius: 25,
     borderWidth: 2,
     borderColor: "#2596be",
-    padding: 5,
     backgroundColor: "#2596be",
+  },
+  logoText: {
+    fontSize: 29,
+    fontStyle: "italic",
+    fontWeight: "bold",
+    color: "#2596be",
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   header1: {
     flexDirection: "row",
@@ -392,14 +504,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "700",
     color: "#fff",
   },
   logoutText: {
     color: "#FF3B30",
     fontWeight: "600",
-    fontSize: 18,
+    fontSize: 16,
+    marginLeft: 5,
   },
   filterContainer: {
     paddingHorizontal: 15,
@@ -408,15 +521,17 @@ const styles = StyleSheet.create({
   filterButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 15,
   },
   filterButton: {
-    flex: 1,
-    marginHorizontal: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 20,
     backgroundColor: "#f0f0f0",
-    alignItems: "center",
+    marginHorizontal: 5,
   },
   activeFilter: {
     backgroundColor: "#fff",
@@ -424,52 +539,69 @@ const styles = StyleSheet.create({
   filterButtonText: {
     color: "#555",
     fontWeight: "600",
+    marginLeft: 5,
   },
   activeFilterText: {
     color: "#2596be",
   },
+  // Input de Busca Aprimorado
+  searchContainer: {
+    position: "relative",
+  },
+  searchIcon: {
+    position: "absolute",
+    left: 15,
+    top: 15,
+    zIndex: 1,
+  },
   searchInput: {
     backgroundColor: "#fff",
-    padding: 10,
-    borderRadius: 20,
-    marginBottom: 10,
+    padding: 12,
+    paddingLeft: 45,
+    borderRadius: 25,
+    fontSize: 16,
     color: "#333",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
+  // Lista e Itens
   listContainer: {
     paddingBottom: 150,
-    paddingHorizontal: 10,
+    paddingHorizontal: 15,
   },
+  // Estados Vazios
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
-  emptyImage: {
-    width: 150,
-    height: 150,
-    marginBottom: 20,
-  },
   emptyText: {
     fontSize: 18,
     color: "#555",
     textAlign: "center",
     marginBottom: 5,
+    fontWeight: "600",
   },
   emptySubText: {
     fontSize: 14,
-    color: "#555",
+    color: "#777",
     textAlign: "center",
   },
+  // Botões
   button: {
-    backgroundColor: "#2596be",
+    backgroundColor: "#fff",
     padding: 12,
-    borderRadius: 5,
+    borderRadius: 25,
     alignItems: "center",
     marginTop: 16,
+    width: "60%",
   },
   buttonText: {
-    color: "#FFFFFF",
+    color: "#2596be",
     fontSize: 16,
     fontWeight: "bold",
   },
@@ -479,25 +611,104 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 16,
   },
+  // Botão de Adicionar
   addButton: {
     backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 50,
-    alignItems: "center",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: "center",
+    alignItems: "center",
     position: "absolute",
-    bottom: 80,
-    right: 20,
-    width: 69,
+    bottom: 90,
+    right: 30,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 5,
     elevation: 5,
+    borderWidth: 2,
+    borderColor: "#2596be",
   },
   addButtonText: {
     color: "#2596be",
     fontSize: 30,
     fontWeight: "bold",
+  },
+  // Modal de Confirmação
+  centeredModalView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalView: {
+    width: "85%",
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 25,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+    color: "#333",
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: "center",
+    color: "#555",
+    lineHeight: 24,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  modalButton: {
+    borderRadius: 10,
+    padding: 12,
+    elevation: 2,
+    width: "48%",
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "#f0f0f0",
+  },
+  confirmButton: {
+    backgroundColor: "#FF3B30",
+  },
+  cancelButtonText: {
+    color: "#333",
+    fontWeight: "bold",
+  },
+  confirmButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  // Skeleton Loading
+  skeletonItem: {
+    backgroundColor: "#e1e1e1",
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+    marginHorizontal: 15,
+  },
+  skeletonLine: {
+    backgroundColor: "#f0f0f0",
+    height: 16,
+    borderRadius: 4,
+    marginBottom: 8,
+    width: "100%",
   },
 });
