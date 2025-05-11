@@ -211,8 +211,9 @@ export function HomeScreen({ navigation }: { navigation: any }) {
       <LottieView
         autoPlay
         style={{
-          width: 400,
-          height: 400,
+          marginTop: -150,
+          width: 500,
+          height:500,
         }}
         source={require("../../assets/empty.json")}
       />
@@ -544,7 +545,6 @@ const styles = StyleSheet.create({
   activeFilterText: {
     color: "#2596be",
   },
-  // Input de Busca Aprimorado
   searchContainer: {
     position: "relative",
   },
@@ -567,12 +567,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  // Lista e Itens
   listContainer: {
     paddingBottom: 150,
     paddingHorizontal: 15,
   },
-  // Estados Vazios
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
@@ -580,15 +578,16 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyText: {
-    fontSize: 18,
-    color: "#555",
+    fontSize: 20,
+    color: "#fff",
     textAlign: "center",
     marginBottom: 5,
+    marginTop: -50,
     fontWeight: "600",
   },
   emptySubText: {
-    fontSize: 14,
-    color: "#777",
+    fontSize: 16,
+    color: "#b9b9b9",
     textAlign: "center",
   },
   // Botões
